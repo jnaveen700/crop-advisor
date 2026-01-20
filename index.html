@@ -24,21 +24,22 @@
     <p>Get personalized crop recommendations based on your local conditions.</p>
 
     <div class="context-bar">
-      <span data-context="season">🌱 Detecting season...</span>
-      <span data-context="soil">🪴 Detecting soil...</span>
-      <span data-context="location">📍 Detecting location...</span>
+      <span data-context="season">🌱 Detecting season…</span>
+      <span data-context="soil">🪴 Detecting soil…</span>
+      <span data-context="location">📍 Detecting location…</span>
     </div>
   </section>
 
   <main class="main-container">
     <form id="crop-form">
 
+      <!-- LOCATION -->
       <section class="card location-card">
         <h2>Location</h2>
         <div id="map" style="height:240px"></div>
 
         <div class="location-details">
-          <span id="location-name">Requesting location permission…</span>
+          <span id="location-name">Requesting location…</span>
         </div>
 
         <input type="hidden" name="latitude" />
@@ -46,6 +47,7 @@
         <input type="hidden" name="location_name" />
       </section>
 
+      <!-- INPUTS -->
       <section class="card input-grid">
         <div class="input-box">
           <label>Budget</label>
@@ -93,6 +95,31 @@
 
     </form>
   </main>
+
+  <!-- RESULTS -->
+  <section id="results" hidden>
+    <h2>Recommended Crops</h2>
+
+    <div class="result-section">
+      <h3>🌾 Best Suitable Crops</h3>
+      <div class="crop-cards" id="best-crops"></div>
+    </div>
+
+    <div class="result-section">
+      <h3>💰 Budget-Friendly Options</h3>
+      <ul id="budget-crops"></ul>
+    </div>
+
+    <div class="result-section">
+      <h3>⚠️ Not Recommended</h3>
+      <ul id="avoid-crops"></ul>
+    </div>
+
+    <div class="result-section explanation">
+      <h3>📌 Explanation</h3>
+      <p id="ai-explanation"></p>
+    </div>
+  </section>
 
   <script src="app.js"></script>
 </body>

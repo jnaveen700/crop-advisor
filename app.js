@@ -1,8 +1,15 @@
 /* ================= DOM HELPER ================= */
 const $ = (s) => document.querySelector(s);
 
-/* ================= GLOBAL MAP ================= */
+/* ================= MAP ================= */
 let map, marker;
+
+/* ================= DEFAULT LOCATION ================= */
+const DEFAULT_LOCATION = {
+  lat: 13.6288,
+  lon: 79.4192,
+  name: "Tirupati, Andhra Pradesh"
+};
 
 /* ================= INIT ================= */
 window.addEventListener("load", () => {
@@ -23,50 +30,59 @@ function detectSeason() {
   $('[data-context="season"]').innerText = `🌱 ${season} season detected`;
 }
 
-/* ================= LOCATION (FIXED) ================= */
+/* ================= LOCATION (ROBUST) ================= */
 function detectUserLocation() {
   if (!navigator.geolocation) {
-    showLocationError("Geolocation not supported");
-    manualFallback();
+    useDefaultLocation("Geolocation not supported");
     return;
   }
 
+  // Try high accuracy first
   navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-
-      console.log("📍 Location detected:", lat, lon);
-
-      setLocation(lat, lon, "Detected location");
-      autoDetectSoil();
-      initMap(lat, lon);
-    },
-    (err) => {
-      console.warn("❌ Geolocation error:", err.message);
-      showLocationError("Permission denied — using default location");
-      manualFallback();
+    handleLocationSuccess,
+    () => {
+      // Retry with low accuracy
+      navigator.geolocation.getCurrentPosition(
+        handleLocationSuccess,
+        () => {
+          useDefaultLocation("Location timeout — using default");
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 15000
+        }
+      );
     },
     {
       enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
+      timeout: 8000
     }
   );
 }
 
-function showLocationError(msg) {
-  $("#location-name").innerText = msg;
-  $('[data-context="location"]').innerText = "📍 Manual location";
-}
+function handleLocationSuccess(pos) {
+  const lat = pos.coords.latitude;
+  const lon = pos.coords.longitude;
 
-function manualFallback() {
-  const lat = 20.5937;
-  const lon = 78.9629;
-
-  setLocation(lat, lon, "Default location (India)");
+  setLocation(lat, lon, "Detected location");
   autoDetectSoil();
   initMap(lat, lon);
+}
+
+function useDefaultLocation(reason) {
+  console.warn(reason);
+
+  setLocation(
+    DEFAULT_LOCATION.lat,
+    DEFAULT_LOCATION.lon,
+    DEFAULT_LOCATION.name
+  );
+
+  autoDetectSoil();
+  initMap(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lon);
+
+  $('[data-context="location"]').innerText =
+    "📍 Default location used";
 }
 
 function setLocation(lat, lon, name) {
@@ -74,7 +90,7 @@ function setLocation(lat, lon, name) {
   $('input[name="longitude"]').value = lon.toFixed(4);
   $('input[name="location_name"]').value = name;
 
-  $("#location-name").innerText = `${name}`;
+  $("#location-name").innerText = name;
   $('[data-context="location"]').innerText = "📍 Location set";
 }
 
@@ -131,6 +147,10 @@ function buildPayload() {
 async function submitForm(e) {
   e.preventDefault();
 
+  const button = document.querySelector(".primary-btn");
+  button.disabled = true;
+  button.innerText = "Analyzing…";
+
   const payload = buildPayload();
 
   const res = await fetch(
@@ -143,5 +163,52 @@ async function submitForm(e) {
   );
 
   const data = await res.json();
-  console.log("AI response:", data);
+
+  button.disabled = false;
+  button.innerText = "Submit";
+
+  renderResults(data);
+}
+
+/* ================= RESULTS + AUTO SCROLL ================= */
+function renderResults(data) {
+  const results = $("#results");
+  const best = $("#best-crops");
+  const budget = $("#budget-crops");
+  const avoid = $("#avoid-crops");
+  const explanation = $("#ai-explanation");
+
+  results.hidden = false;
+  explanation.innerText = data.ai.explanation;
+
+  best.innerHTML = "";
+  data.ai.best_crops.forEach((crop) => {
+    const card = document.createElement("div");
+    card.className = "card crop-card";
+
+    card.innerHTML = `
+      <h4>${crop.name}</h4>
+      <p>💧 <strong>Water need:</strong> ${crop.water_need}</p>
+      <p>${crop.reason}</p>
+    `;
+
+    best.appendChild(card);
+  });
+
+  budget.innerHTML = "";
+  data.ai.budget_friendly.forEach((c) => {
+    const li = document.createElement("li");
+    li.innerText = c;
+    budget.appendChild(li);
+  });
+
+  avoid.innerHTML = "";
+  data.ai.not_recommended.forEach((c) => {
+    const li = document.createElement("li");
+    li.innerText = c;
+    avoid.appendChild(li);
+  });
+
+  // 🔥 UX FIX
+  results.scrollIntoView({ behavior: "smooth" });
 }
