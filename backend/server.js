@@ -16,36 +16,32 @@ const model = genAI.getGenerativeModel({
   model: "models/gemini-2.5-flash"
 });
 
+/* ================= HEALTH ================= */
+app.get("/", (req, res) => {
+  res.send("SmartCrop Advisor API running");
+});
 
+app.get("/healthz", (req, res) => {
+  res.json({ status: "ok" });
+});
 
 /* ================= GEMINI PROMPT ================= */
 function buildGeminiPrompt(input) {
   return `
-You are an agricultural decision-support system.
-You do NOT chat.
-You return ONLY valid JSON.
+Return ONLY valid JSON.
 
-Context:
 Location: ${input.location.name}
 Season: ${input.season}
 Soil: ${input.soil}
 Budget: ${input.budget}
-Previous crop: ${input.previous_crop}
-Risk tolerance: ${input.risk_level}
+Risk: ${input.risk_level}
 
 Weather:
-Temperature: ${input.weather.temp} °C
-Humidity: ${input.weather.humidity} %
-Rainfall: ${input.weather.rainfall} mm
+Temp: ${input.weather.temp}
+Humidity: ${input.weather.humidity}
+Rainfall: ${input.weather.rainfall}
 
-Rules:
-- Avoid water-intensive crops if rainfall is low
-- Prefer low-input crops if budget is low
-- Be conservative
-- This is decision support, NOT yield prediction
-
-Return JSON ONLY:
-
+JSON FORMAT:
 {
   "best_crops": [
     { "name": "", "water_need": "", "reason": "" }
@@ -62,7 +58,6 @@ app.post("/recommend", async (req, res) => {
   const { location } = req.body;
   let weather;
 
-  /* --------- 1️⃣ TRY REAL WEATHER FIRST --------- */
   try {
     const weatherRes = await axios.get(
       "https://api.openweathermap.org/data/2.5/weather",
@@ -81,44 +76,28 @@ app.post("/recommend", async (req, res) => {
       humidity: weatherRes.data.main.humidity,
       rainfall: weatherRes.data.rain?.["1h"] || 0
     };
-
-    console.log("✅ Real weather fetched");
-
-  } catch (err) {
-    /* --------- 2️⃣ FALLBACK ONLY IF REAL FAILS --------- */
-    console.warn("⚠️ Weather API failed, using mock data");
-
-    weather = {
-      temp: 32,
-      humidity: 60,
-      rainfall: 2
-    };
+  } catch {
+    weather = { temp: 32, humidity: 60, rainfall: 2 };
   }
 
-  /* --------- 3️⃣ GEMINI REASONING --------- */
   try {
-    const prompt = buildGeminiPrompt({
-      ...req.body,
-      weather
-    });
-
+    const prompt = buildGeminiPrompt({ ...req.body, weather });
     const result = await model.generateContent(prompt);
-    const rawText = result.response.text();
-
-    const cleanJson = rawText.replace(/```json|```/g, "").trim();
-    const aiResponse = JSON.parse(cleanJson);
+    const text = result.response.text();
+    const clean = text.replace(/```json|```/g, "").trim();
 
     res.json({
       weather,
-      ai: aiResponse
+      ai: JSON.parse(clean)
     });
-
   } catch (err) {
-    console.error("❌ Gemini failed", err);
-    res.status(500).json({ error: "AI reasoning failed" });
+    res.status(500).json({ error: "AI failed" });
   }
 });
 
-app.listen(5000, () => {
-  console.log("✅ Backend running on http://localhost:5000");
+/* ================= START ================= */
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Backend running on port ${PORT}`);
 });

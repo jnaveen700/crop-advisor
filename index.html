@@ -5,120 +5,95 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SmartCrop Advisor</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <link rel="stylesheet" href="style.css">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<header class="navbar">
-  <div class="logo">🌱 <strong>SmartCrop Advisor</strong></div>
-</header>
+  <header class="navbar">
+    <div class="logo">🌱 <strong>SmartCrop Advisor</strong></div>
+  </header>
 
-<section class="hero">
-  <h1>Plan Your Best Harvest with Smart AI Insights</h1>
-  <p>Get personalized crop recommendations based on your local conditions.</p>
+  <section class="hero">
+    <h1>Plan Your Best Harvest with Smart AI Insights</h1>
+    <p>Get personalized crop recommendations based on your local conditions.</p>
 
-  <div class="context-bar">
-    <span data-context="season">🌱 Detecting season...</span>
-    <span data-context="soil">🪴 Detecting soil...</span>
-    <span data-context="location">📍 Detecting location...</span>
-  </div>
-</section>
+    <div class="context-bar">
+      <span data-context="season">🌱 Detecting season...</span>
+      <span data-context="soil">🪴 Detecting soil...</span>
+      <span data-context="location">📍 Detecting location...</span>
+    </div>
+  </section>
 
-<main class="main-container">
-<form id="crop-form">
+  <main class="main-container">
+    <form id="crop-form">
 
-<section class="card location-card">
-  <h2>Location</h2>
-  <div id="map"></div>
+      <section class="card location-card">
+        <h2>Location</h2>
+        <div id="map" style="height:240px"></div>
 
-  <div class="location-details">
-    <span id="location-name">Fetching location...</span>
-  </div>
+        <div class="location-details">
+          <span id="location-name">Requesting location permission…</span>
+        </div>
 
-  <input type="hidden" name="latitude" />
-  <input type="hidden" name="longitude" />
-  <input type="hidden" name="location_name" />
-</section>
+        <input type="hidden" name="latitude" />
+        <input type="hidden" name="longitude" />
+        <input type="hidden" name="location_name" />
+      </section>
 
-<section class="card input-grid">
-  <div class="input-box">
-    <label>Budget</label>
-    <select name="budget" required>
-      <option value="">Select</option>
-      <option value="low">Low</option>
-      <option value="medium">Medium</option>
-      <option value="high">High</option>
-    </select>
-  </div>
+      <section class="card input-grid">
+        <div class="input-box">
+          <label>Budget</label>
+          <select name="budget" required>
+            <option value="">Select</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
 
-  <div class="input-box">
-    <label>Crop Preference</label>
-    <select name="crop_preference">
-      <option value="any">Any</option>
-      <option value="food">Food crops</option>
-      <option value="cash">Cash crops</option>
-    </select>
-  </div>
+        <div class="input-box">
+          <label>Crop Preference</label>
+          <select name="crop_preference">
+            <option value="any">Any</option>
+            <option value="food">Food crops</option>
+            <option value="cash">Cash crops</option>
+          </select>
+        </div>
 
-  <div class="input-box">
-    <label>Previous Crop</label>
-    <select name="previous_crop">
-      <option value="none">None</option>
-      <option value="rice">Rice</option>
-      <option value="millets">Millets</option>
-      <option value="pulses">Pulses</option>
-    </select>
-  </div>
+        <div class="input-box">
+          <label>Previous Crop</label>
+          <select name="previous_crop">
+            <option value="none">None</option>
+            <option value="rice">Rice</option>
+            <option value="millets">Millets</option>
+            <option value="pulses">Pulses</option>
+          </select>
+        </div>
 
-  <div class="input-box">
-    <label>Risk Level</label>
-    <select name="risk_level" required>
-      <option value="">Select</option>
-      <option value="low">Low</option>
-      <option value="medium">Medium</option>
-      <option value="high">High</option>
-    </select>
-  </div>
-</section>
+        <div class="input-box">
+          <label>Risk Level</label>
+          <select name="risk_level" required>
+            <option value="">Select</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+      </section>
 
-<div class="submit-wrapper">
-  <button type="submit" class="primary-btn">Submit</button>
-</div>
+      <div class="submit-wrapper">
+        <button type="submit" class="primary-btn">Submit</button>
+      </div>
 
-</form>
-</main>
+    </form>
+  </main>
 
-<section id="results" hidden>
-  <h2>Recommended Crops</h2>
-
-  <div class="result-section">
-    <h3>🌾 Best Suitable Crops</h3>
-    <div class="crop-cards" id="best-crops"></div>
-  </div>
-
-  <div class="result-section">
-    <h3>💰 Budget-Friendly Options</h3>
-    <ul id="budget-crops"></ul>
-  </div>
-
-  <div class="result-section">
-    <h3>⚠️ Not Recommended</h3>
-    <ul id="avoid-crops"></ul>
-  </div>
-
-  <div class="result-section explanation">
-    <h3>📌 Explanation</h3>
-    <p id="ai-explanation"></p>
-  </div>
-</section>
-
-<footer>
-  <p>Smart Agriculture • AI-assisted Decision Support</p>
-</footer>
-
-<script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

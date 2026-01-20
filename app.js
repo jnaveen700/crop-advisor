@@ -1,55 +1,7 @@
 /* ================= DOM HELPER ================= */
 const $ = (s) => document.querySelector(s);
 
-/* ================= IMAGE CONFIG ================= */
-const UNSPLASH = "?auto=format&fit=crop&w=900&q=60";
-
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1501004318641-b39e6451bec6" + UNSPLASH;
-
-/* ================= CROP IMAGE MAP (CORRECT) ================= */
-/*
-Keys MUST match normalized AI crop names
-*/
-const CROP_IMAGES = {
-  chickpea:
-    "https://images.unsplash.com/photo-1600180758890-6b94519a62c8" + UNSPLASH,
-  gram:
-    "https://images.unsplash.com/photo-1600180758890-6b94519a62c8" + UNSPLASH,
-
-  lentil:
-    "https://images.unsplash.com/photo-1615485925873-0c9c1d9c02f1" + UNSPLASH,
-
-  barley:
-    "https://images.unsplash.com/photo-1598032895397-b9472444bf93" + UNSPLASH,
-
-  rice:
-    "https://images.unsplash.com/photo-1605000797499-95a51c5269ae" + UNSPLASH,
-  wheat:
-    "https://images.unsplash.com/photo-1501430654243-cf24a3b8b6f0" + UNSPLASH,
-  maize:
-    "https://images.unsplash.com/photo-1600431521340-491eca880813" + UNSPLASH
-};
-
-/* ================= NORMALIZE AI CROP NAME ================= */
-function normalizeCropName(name) {
-  return name
-    .toLowerCase()
-    .replace(/\(.*?\)/g, "")   // remove (gram)
-    .replace(/[^a-z\s]/g, "") // remove symbols
-    .trim();
-}
-
-function getCropImage(name) {
-  const key = normalizeCropName(name);
-
-  // Debug once if needed
-  console.log("Crop image key:", key);
-
-  return CROP_IMAGES[key] || FALLBACK_IMAGE;
-}
-
-/* ================= GLOBAL MAP STATE ================= */
+/* ================= GLOBAL MAP ================= */
 let map, marker;
 
 /* ================= INIT ================= */
@@ -71,9 +23,10 @@ function detectSeason() {
   $('[data-context="season"]').innerText = `🌱 ${season} season detected`;
 }
 
-/* ================= LOCATION ================= */
+/* ================= LOCATION (FIXED) ================= */
 function detectUserLocation() {
   if (!navigator.geolocation) {
+    showLocationError("Geolocation not supported");
     manualFallback();
     return;
   }
@@ -83,20 +36,35 @@ function detectUserLocation() {
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
 
+      console.log("📍 Location detected:", lat, lon);
+
       setLocation(lat, lon, "Detected location");
       autoDetectSoil();
       initMap(lat, lon);
     },
-    manualFallback,
-    { enableHighAccuracy: true, timeout: 8000 }
+    (err) => {
+      console.warn("❌ Geolocation error:", err.message);
+      showLocationError("Permission denied — using default location");
+      manualFallback();
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    }
   );
+}
+
+function showLocationError(msg) {
+  $("#location-name").innerText = msg;
+  $('[data-context="location"]').innerText = "📍 Manual location";
 }
 
 function manualFallback() {
   const lat = 20.5937;
   const lon = 78.9629;
 
-  setLocation(lat, lon, "Location not detected (manual)");
+  setLocation(lat, lon, "Default location (India)");
   autoDetectSoil();
   initMap(lat, lon);
 }
@@ -106,7 +74,7 @@ function setLocation(lat, lon, name) {
   $('input[name="longitude"]').value = lon.toFixed(4);
   $('input[name="location_name"]').value = name;
 
-  $("#location-name").innerText = `${name} — adjust on map`;
+  $("#location-name").innerText = `${name}`;
   $('[data-context="location"]').innerText = "📍 Location set";
 }
 
@@ -175,62 +143,5 @@ async function submitForm(e) {
   );
 
   const data = await res.json();
-  renderResults(data);
-}
-
-/* ================= RENDER RESULTS (BACKGROUND IMAGE CARDS) ================= */
-function renderResults(data) {
-  const results = $("#results");
-  const best = $("#best-crops");
-  const budget = $("#budget-crops");
-  const avoid = $("#avoid-crops");
-  const explanation = $("#ai-explanation");
-
-  results.hidden = false;
-  explanation.innerText = data.ai.explanation;
-
-  /* ===== BEST CROPS ===== */
-  best.innerHTML = "";
-
-  data.ai.best_crops.forEach((crop) => {
-    const card = document.createElement("div");
-    card.className = "card crop-card";
-
-    const imageUrl = getCropImage(crop.name);
-
-    card.style.backgroundImage = `
-      linear-gradient(
-        180deg,
-        rgba(255,255,255,0.85),
-        rgba(255,255,255,0.95)
-      ),
-      url(${imageUrl})
-    `;
-
-    card.innerHTML = `
-      <div class="crop-info">
-        <h4>${crop.name}</h4>
-        <p>💧 <strong>Water need:</strong> ${crop.water_need}</p>
-        <p>${crop.reason}</p>
-      </div>
-    `;
-
-    best.appendChild(card);
-  });
-
-  /* ===== BUDGET FRIENDLY ===== */
-  budget.innerHTML = "";
-  data.ai.budget_friendly.forEach((c) => {
-    const li = document.createElement("li");
-    li.innerText = c;
-    budget.appendChild(li);
-  });
-
-  /* ===== AVOID ===== */
-  avoid.innerHTML = "";
-  data.ai.not_recommended.forEach((c) => {
-    const li = document.createElement("li");
-    li.innerText = c;
-    avoid.appendChild(li);
-  });
+  console.log("AI response:", data);
 }
