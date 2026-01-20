@@ -165,11 +165,14 @@ async function submitForm(e) {
 
   const payload = buildPayload();
 
-  const res = await fetch("http://localhost:5000/recommend", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
+  const res = await fetch(
+    "https://crop-advisor-mwyo.onrender.com/recommend",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }
+  );
 
   const data = await res.json();
   renderResults(data);
